@@ -1,26 +1,11 @@
-import argparse
-import uuid
-import json
-import time
-from tqdm import tqdm
-
 import tensorflow as tf
 import numpy as np
-from flask import Flask, jsonify, request, make_response
-# from deepface import DeepFace
-# from deepface.basemodels import VGGFace, OpenFace, Facenet, FbDeepFace, DeepID
-# from deepface.basemodels.DlibResNet import DlibResNet
 
-#from src.Race import loadModel
 import src.Race as Race
 import src.Age as Age
 import src.Emotion as Emotion
 #from src.Emotion import loadModel
 from src.commons.functions import preprocess_face
-
-import flask_app.predict as predict
-
-app = Flask(__name__)
 
 race_model = Race.loadModel()
 race_labels = ['asian', 'indian', 'black', 'white', 'middle eastern', 'latino hispanic']
@@ -29,59 +14,6 @@ age_model = Age.loadModel()
 
 emotion_model = Emotion.loadModel()
 emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
-
-@app.route('/analyze/<name>', methods=['POST'])
-def analyze(name):
-
-    tic = time.time()
-    trx_id = uuid.uuid4()
-
-    received_img, image_type = decode_Request(request)
-
-    # resp_obj = jsonify({'success': False})
-
-    if not received_img:
-        return {'error': 'you must pass an img object in the request'}, 205
-    
-    #print("Analyzing image...")
-
-    try:
-        if name == "race":
-            resp_obj = predict.predict_race(received_img, image_type)
-        elif name == "age":
-            resp_obj = predict.predict_age(received_img, image_type)
-        elif name == "emotion":
-            resp_obj = predict.predict_emotion(received_img, image_type)
-
-        toc = time.time()
-
-        # resp_obj["trx_id"] = trx_id
-        # resp_obj["seconds"] = toc-tic
-
-        return resp_obj, 200
-
-    except Exception as ex:
-        print(ex)
-        return {'error': str(ex)}, 200
-
-
-def decode_Request(request):
-    if request.content_type == "application/json":
-        req = request.get_json()
-        if 'image' in req:
-            received_img = req['image']
-            if 'image_type' in req:
-                image_type = req['image_type']
-            else:
-                image_type = 'base64'
-        else:
-            return None, None
-    else:
-        req = request.form
-        image_type = req.get('image_type')
-        received_img = req.get('image')
-    
-    return received_img, image_type
 
 def predict_race(img, img_type, race_probs = 0):
     img_224 = preprocess_face(img = img, img_type = img_type, target_size = (224, 224), grayscale = False, 
@@ -156,5 +88,3 @@ def predict_emotion(img, img_type, emotion_probs = 0):
         resp_obj = json.loads(resp_obj)
 
     return resp_obj
-
-
